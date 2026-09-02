@@ -615,30 +615,40 @@
             }
         }
 
-        function saveAttendanceData() {
-            const tanggal = document.getElementById('input-tanggal').value;
-            const pemeriksa = document.getElementById('input-pemeriksa').value;
-            if (!tanggal) return alert('Pilih tanggal absensi!');
+        const SPREADSHEET_URL = "https://script.google.com/macros/s/AKfycbx6LaKr1I-0elDe4ttZyuOryDRHTmh9lZLOq7ZNcMA1aDR8JcmKKNWGcLtSgMi_VVDkBg/exec";
 
-            if (!attendanceDatabase[tanggal]) attendanceDatabase[tanggal] = { pemeriksa: '', records: {} };
-            attendanceDatabase[tanggal].pemeriksa = pemeriksa;
+async function saveAttendanceData() {
+    const tanggal = document.getElementById('input-tanggal').value;
+    const pemeriksa = document.getElementById('input-pemeriksa').value;
+    if (!tanggal) return alert('Pilih tanggal absensi!');
 
-            MASTER_PETUGAS.forEach(p => {
-                const hadirEl = document.getElementById(`hadir-${p.nip}`);
-                if (hadirEl) {
-                    attendanceDatabase[tanggal].records[p.nip] = {
-                        hadir: document.getElementById(`hadir-${p.nip}`).checked,
-                        seragam: document.getElementById(`seragam-${p.nip}`).checked,
-                        idcard: document.getElementById(`idcard-${p.nip}`).checked,
-                        sepatu: document.getElementById(`sepatu-${p.nip}`).checked,
-                        keterangan: document.getElementById(`ket-${p.nip}`).value
-                    };
-                }
-            });
-
-            saveDatabase();
-            alert(`Data absensi tanggal ${tanggal} berhasil disimpan!`);
+    const records = {};
+    MASTER_PETUGAS.forEach(p => {
+        const hadirEl = document.getElementById(hadir-${p.nip});
+        if (hadirEl) {
+            records[p.nip] = {
+                hadir: document.getElementById(hadir-${p.nip}).checked,
+                seragam: document.getElementById(seragam-${p.nip}).checked,
+                idcard: document.getElementById(idcard-${p.nip}).checked,
+                sepatu: document.getElementById(sepatu-${p.nip}).checked,
+                keterangan: document.getElementById(ket-${p.nip}).value
+            };
         }
+    });
+
+    try {
+        const response = await fetch(SPREADSHEET_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tanggal, pemeriksa, records })
+        });
+        
+        alert(Data absensi tanggal ${tanggal} berhasil terkirim dan tersimpan di Google Sheets!);
+    } catch (error) {
+        alert("Gagal mengirim data ke Google Sheets.");
+    }
+}
 
         function renderDailyRecap() {
             const tanggal = document.getElementById('rekap-harian-tanggal').value;
