@@ -12,6 +12,114 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- html2pdf untuk Export PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+    const API_URL = "http://localhost:3000/api";
+    let MASTER_PETUGAS = [];
+    let attendanceDatabase = {};
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('input-tanggal').value = today;
+        document.getElementById('rekap-harian-tanggal').value = today;
+        document.getElementById('filter-bulan-rekap').value = today.substring(0, 7);
+
+        await fetchPetugas();
+        await loadInputData();
+        lucide.createIcons();
+    });
+
+    // Fetch Master Petugas dari Database
+    async function fetchPetugas() {
+        try {
+            const res = await fetch(${API_URL}/petugas);
+            MASTER_PETUGAS = await res.json();
+            renderInputTable();
+        } catch (e) {
+            console.error("Gagal mengambil data petugas dari database:", e);
+        }
+    }
+
+    // Load Data Input Berdasarkan Tanggal
+    async function loadInputData() {
+        const tanggal = document.getElementById('input-tanggal').value;
+        try {
+            const res = await fetch(${API_URL}/absensi?tanggal=${tanggal});
+            const data = await res.json();
+            
+            attendanceDatabase[tanggal] = { pemeriksa: '', records: {} };
+            if (data.length > 0) {
+                attendanceDatabase[tanggal].pemeriksa = data[0].pemeriksa || '';
+                data.forEach(r => {
+                    attendanceDatabase[tanggal].records[r.nip] = {
+                        hadir: r.hadir === 1,
+                        seragam: r.seragam === 1,
+                        idcard: r.idcard === 1,
+                        sepatu: r.sepatu === 1,
+                        keterangan: r.keterangan
+                    };
+                });
+            }
+            document.getElementById('input-pemeriksa').value = attendanceDatabase[tanggal].pemeriksa;
+            renderInputTable();
+        } catch (e) {
+            console.error("Gagal memuat absensi:", e);
+        }
+    }
+
+    // Simpan Data Absensi ke Database
+    async function saveAttendanceData() {
+        const tanggal = document.getElementById('input-tanggal').value;
+        const pemeriksa = document.getElementById('input-pemeriksa').value;
+        if (!tanggal) return alert('Pilih tanggal absensi!');
+
+        const records = {};
+        MASTER_PETUGAS.forEach(p => {
+            const hadirEl = document.getElementById(hadir-${p.nip});
+            if (hadirEl) {
+                records[p.nip] = {
+                    hadir: document.getElementById(hadir-${p.nip}).checked,
+                    seragam: document.getElementById(seragam-${p.nip}).checked,
+                    idcard: document.getElementById(idcard-${p.nip}).checked,
+                    sepatu: document.getElementById(sepatu-${p.nip}).checked,
+                    keterangan: document.getElementById(ket-${p.nip}).value
+                };
+            }
+        });
+
+        try {
+            const res = await fetch(${API_URL}/absensi, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tanggal, pemeriksa, records })
+            });
+            const result = await res.json();
+            alert(result.message);
+        } catch (e) {
+            alert("Gagal menyimpan ke database backend.");
+        }
+    }
+
+    // Simpan/Edit Petugas Baru ke Database
+    async function savePetugas(e) {
+        e.preventDefault();
+        const nip = document.getElementById('edit-nip').value.trim();
+        const nama = document.getElementById('edit-nama').value.trim().toUpperCase();
+        const koordinator = document.getElementById('edit-koordinator').value.trim().toUpperCase();
+
+        try {
+            await fetch(${API_URL}/petugas, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nip, nama, koordinator })
+            });
+            await fetchPetugas();
+            closeModalPetugas();
+            alert('Data petugas tersimpan di database!');
+        } catch (e) {
+            alert('Gagal menyimpan petugas.');
+        }
+    }
+</script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
